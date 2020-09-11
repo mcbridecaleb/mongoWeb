@@ -18,9 +18,8 @@ class BellyButtonData():
         self.Base = automap_base()
         self.Base.prepare(self.engine,reflect=True)
         self.Subjects = self.Base.classes['subjects']
-        self.meta = MetaData
-        self.TestResults = Table('test_results_view', self.meta,
-                                    autoload_with=self.engine)
+        self.meta = MetaData()
+        #self.TestResults = Table('test_results_view', self.meta, autoload_with=self.engine)
 
     def display_db_info(self):
         inspector = inspect(self.engine)
@@ -33,8 +32,32 @@ class BellyButtonData():
             for column in self.inspector.get_columns(table):
                 print(f"name: {column['name']}, column type: {column['type']}")
 
-if __name__ == '__main':
-    info = BellyButtonData("sqlite://bellyButtons.db")
+
+    def get_subject_ids(self):
+        session = Session(self.engine)
+
+        results = session.query(self.Subjects.id)
+
+        df = pd.read_sql(results.statement, session.connection())
+        session.close()
+        return list(df.id)
+
+    def get_subjects(self, subj_id=0):
+        session = Session(self.engine)
+
+        if subj_id == 0:
+            results = session.query(self.Subjects)
+        else:
+            results = session.query(self.Subjects).filter(self.Subjects.id == subj_id)    
+            
+        df = pd.read_sql(results.statement, session.connection())
+
+        session.close()  
+        return df.to_dict(orient="records")
+    
+
+if __name__ == '__main__':
+    info = BellyButtonData("sqlite:///bellyButtons.db")
     info.display_db_info()
     print("\nSubject IDs\n")
 
